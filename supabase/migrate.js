@@ -8,7 +8,7 @@
    Qayta ishga tushirsa ham xavfsiz: bir xil id lar ustiga yoziladi, ikki marta qo'shilmaydi.
    Avval supabase/schema.sql ni Supabase SQL Editor'da ishga tushiring.
    ===================================================================== */
-require('../load-env');
+require('../local/load-env');
 const fs = require('fs');
 const path = require('path');
 const { store, cleanProduct, ORDER_FIELDS } = require('../api/_lib');

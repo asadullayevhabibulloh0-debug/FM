@@ -3,10 +3,11 @@
   "version": "2.1.0",
   "private": true,
   "scripts": {
-    "start": "node telegram-local.js",
-    "no-tunnel": "node index.js",
-    "site-only": "node server.js",
-    "tg-setup": "node setup-bot.js",
+    "start": "node local/telegram-local.js",
+    "no-tunnel": "node local/bot.js",
+    "site-only": "node local/server.js",
+    "tg-setup": "node local/setup-bot.js",
+    "db-check": "node local/check-supabase.js",
     "db-migrate": "node supabase/migrate.js"
   },
   "engines": {
