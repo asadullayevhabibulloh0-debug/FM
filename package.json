@@ -1,0 +1,15 @@
+{
+  "name": "futbol-market",
+  "version": "2.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node telegram-local.js",
+    "no-tunnel": "node index.js",
+    "site-only": "node server.js",
+    "tg-setup": "node setup-bot.js",
+    "db-migrate": "node supabase/migrate.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

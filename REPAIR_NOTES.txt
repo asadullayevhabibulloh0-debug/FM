@@ -1,0 +1,19 @@
+FUTBOL MARKET — TUZATISH QAYDLARI
+
+Qilingan ishlar:
+- Telefon/planshet uchun qo'shimcha responsive CSS qo'shildi va index/shop/admin/login sahifalariga ulandi.
+- Til almashtirgich (UZ/RU/EN) qo'shildi; tanlov brauzerda saqlanadi.
+- Mahsulotlar uchun products.json va rasmlar loyihada saqlandi.
+
+Ishga tushirish:
+1. Node.js o'rnatilgan bo'lsin.
+2. Terminalda loyiha papkasiga kiring.
+3. npm install (package.json dagi loyihaga kerakli paketlar bo'lsa).
+4. npm run site-only
+5. Brauzerda http://localhost:3000 ni oching.
+
+Eslatma:
+- ZIP ichidan .env/.env.local, Git tarixi va tunnel executable xavfsizlik sababli chiqarildi. Ularni ulashish xavfli.
+- Lokal serverda mahsulot va buyurtmalar data.json faylida saqlanishi mumkin.
+- Saytni Vercel'da joylashtirsangiz, admin buyurtmalari/mahsulotlarni saqlash uchun Supabase va ADMIN_KEY, bot xabarlari uchun BOT_TOKEN va ADMIN_CHAT_ID environment qiymatlarini hosting sozlamalarida qayta kiriting. Bu qiymatlar brauzerga yoki ommaviy ZIPga yozilmasin.
+- Til tarjimasi hozir asosiy umumiy tugma/matnlar uchun; mahsulot nomlari foydalanuvchi kiritgan nom bo'lgani uchun o'zgartirilmaydi.

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/orders/:id",
+      "destination": "/api/orders?id=:id"
+    },
+    {
+      "source": "/api/products/:id",
+      "destination": "/api/products?id=:id"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/telegram-app/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
