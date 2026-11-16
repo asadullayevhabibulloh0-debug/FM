@@ -238,7 +238,7 @@ async function onCallback(cb) {
   }
 }
 
-module.exports = async (req, res) => {
+module.exports = require("./_lib").safe(async (req, res) => {
   if (req.method !== "POST") return res.status(200).send("Futbol Market bot webhook ishlayapti ✅");
   if (!TOKEN || req.headers["x-telegram-bot-api-secret-token"] !== webhookSecret()) {
     return res.status(401).send("unauthorized");
@@ -253,4 +253,4 @@ module.exports = async (req, res) => {
   }
   // Har doim 200: aks holda Telegram shu xabarni qayta-qayta yuboradi
   res.status(200).json({ ok: true });
-};
+}, "telegram");

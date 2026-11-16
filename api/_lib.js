@@ -348,9 +348,29 @@ const pickOrderEdit = patch => Object.fromEntries(Object.entries(patch || {}).fi
 /* Admin panel so'rovi (Vercel'da ADMIN_KEY bilan himoyalangan) */
 function isAdminRequest(req) {
   if (!ADMIN_KEY) return true; // ADMIN_KEY bo'sh = admin panel PAROLSIZ (hamma kira oladi)
-  const key = String(req.headers["x-admin-key"] || "");
-  return !!ADMIN_KEY && key.length === ADMIN_KEY.length &&
-    crypto.timingSafeEqual(Buffer.from(key), Buffer.from(ADMIN_KEY));
+  return safeEqual(String(req.headers["x-admin-key"] || ""), ADMIN_KEY);
+}
+
+/* parolni solishtirish: bayt uzunligi bo'yicha (o'zbekcha/kirill harfli parolda ham xato bermaydi) */
+function safeEqual(a, b) {
+  const x = Buffer.from(String(a)), y = Buffer.from(String(b));
+  return x.length === y.length && x.length > 0 && crypto.timingSafeEqual(x, y);
+}
+
+/* Har bir API funksiyasini o'raydi: xato bo'lsa Vercel'ning "500 FUNCTION_INVOCATION_FAILED"
+   sahifasi o'rniga aniq sababni ko'rsatadi (kalitlar ko'rsatilmaydi). */
+function safe(handler, name) {
+  return async (req, res) => {
+    try { return await handler(req, res); }
+    catch (e) {
+      console.error(`[${name}]`, e && e.stack || e);
+      if (res.headersSent) { try { res.end(); } catch (x) { } return; }
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      res.end(JSON.stringify({ error: `Server xatosi (${name}): ${e && e.message || e}` }));
+    }
+  };
 }
 
 /* Telegram Mini App initData imzosini tekshirish (https://core.telegram.org/bots/webapps) */
@@ -518,7 +538,7 @@ async function readJson(req) {
 }
 
 module.exports = {
-  TOKEN, ADMINS, ADMIN_KEY, DELIVERY_FEE, PRINT_FEE, PAYMENT_METHODS, CARD_METHODS, DISCOUNTS, normPayment, discountFor, STATUS, STATUS_ICON, STATUS_NOTE, MAP_RE,
+  safe, safeEqual, TOKEN, ADMINS, ADMIN_KEY, DELIVERY_FEE, PRINT_FEE, PAYMENT_METHODS, CARD_METHODS, DISCOUNTS, normPayment, discountFor, STATUS, STATUS_ICON, STATUS_NOTE, MAP_RE,
   esc, money, tg, siteUrl, verifyInitData, orderText, customerConfirmText, statusKeyboard, webhookSecret, readJson,
   store, checkSupabase, getProducts, uploadImage, cleanProduct, pickOrderEdit, notifyNewOrder, notifyCustomerStatus, ORDER_FIELDS, isAdminRequest, buildOrder, OrderError
 };

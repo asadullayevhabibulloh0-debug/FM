@@ -8,7 +8,7 @@ const { readJson, store, getProducts, uploadImage, cleanProduct, isAdminRequest 
 
 const MAX_IMG = 2800000; // Vercel so'rov chegarasi uchun: rasm ~2 MB gacha
 
-module.exports = async (req, res) => {
+module.exports = require("./_lib").safe(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Admin-Key");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -54,4 +54,4 @@ module.exports = async (req, res) => {
   }
   const saved = await store.saveProduct(p);
   res.status(req.method === "POST" ? 201 : 200).json(saved);
-};
+}, "products");

@@ -22,7 +22,7 @@ function luhn(num) {
   return sum % 10 === 0;
 }
 
-module.exports = async (req, res) => {
+module.exports = require("./_lib").safe(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -54,4 +54,4 @@ module.exports = async (req, res) => {
     console.error("card-lookup:", e.message);
     return res.status(502).json({ configured: true, message: "Bank API’sidan javob olinmadi. Keyinroq urinib ko‘ring." });
   }
-};
+}, "card-lookup");

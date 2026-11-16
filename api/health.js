@@ -1,7 +1,7 @@
 /* /api/health — brauzerda oching: https://SAYT/api/health  (Supabase qaysi qadamda to'xtayotganini ko'rsatadi) */
 const { checkSupabase, store, TOKEN, ADMINS, ADMIN_KEY, tg, siteUrl } = require("./_lib");
 
-module.exports = async (req, res) => {
+module.exports = require("./_lib").safe(async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   const steps = await checkSupabase();
   const env = { BOT_TOKEN: !!TOKEN, ADMIN_CHAT_ID: ADMINS.length > 0, ADMIN_KEY: !!ADMIN_KEY, SUPABASE: store.enabled };
@@ -31,4 +31,4 @@ module.exports = async (req, res) => {
 <table cellpadding="6" border="1" style="border-collapse:collapse;width:100%"><tr><th></th><th>Tekshiruv</th><th>Tafsilot</th></tr>${tgRows}</table>
 <p><a href="/api/setup-bot">Botni sozlash → /api/setup-bot</a></p>
 <h3>Environment</h3><table cellpadding="6" border="1" style="border-collapse:collapse"><tr><th></th><th>Nom</th><th></th></tr>${envRows}</table></body>`);
-};
+}, "health");

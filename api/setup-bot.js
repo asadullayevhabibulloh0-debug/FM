@@ -11,14 +11,13 @@
      - /start /shop /help buyruqlari va bot tavsifi
    Har deploydan keyin qayta bosish shart emas: domen o'zgarmasa webhook saqlanib qoladi.
    ===================================================================== */
-const crypto = require("crypto");
-const { TOKEN, ADMINS, ADMIN_KEY, tg, siteUrl, webhookSecret, esc } = require("./_lib");
+const { TOKEN, ADMINS, ADMIN_KEY, tg, siteUrl, webhookSecret, esc, safe, safeEqual } = require("./_lib");
 
 function keyOk(req) {
   if (!ADMIN_KEY) return true;
   const q = new URL(req.url, "http://x").searchParams;
   const key = String(req.headers["x-admin-key"] || q.get("key") || "");
-  return key.length === ADMIN_KEY.length && crypto.timingSafeEqual(Buffer.from(key), Buffer.from(ADMIN_KEY));
+  return safeEqual(key, ADMIN_KEY);
 }
 
 async function connect(site) {
@@ -59,7 +58,7 @@ async function connect(site) {
   return done;
 }
 
-module.exports = async (req, res) => {
+module.exports = require("./_lib").safe(async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   const site = siteUrl(req);
@@ -122,4 +121,4 @@ ${wrongHost ? `<p style="color:#b45309">⚠️ Siz <code>${esc(site)}</code> ni 
 ${ADMIN_KEY ? "<br><small>ADMIN_KEY o‘rnatilgan: havola oxiriga parolni yozing.</small>" : ""}</p>
 <p><small>Supabase holati: <a href="/api/health">/api/health</a></small></p>`);
   page(out.join("\n"));
-};
+}, "setup-bot");

@@ -37,7 +37,7 @@ async function create(req, res) {
   res.status(201).json({ ok: true, id: order.id, total: order.total, discount: order.discount, payment: order.payment });
 }
 
-module.exports = async (req, res) => {
+module.exports = require("./_lib").safe(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Admin-Key");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -78,4 +78,4 @@ module.exports = async (req, res) => {
   if (!next) return res.status(404).json({ error: "Topilmadi" });
   if (before && clean.status && clean.status !== before.status) await notifyCustomerStatus(next, clean.status);
   res.status(200).json(next);
-};
+}, "orders");
