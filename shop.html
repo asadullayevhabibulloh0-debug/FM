@@ -340,6 +340,7 @@
 <div class="toast" id="toast"></div>
 
 
+<script src="./api-base.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -1198,24 +1199,40 @@ async function placeOrders(details) {
     batch.push(order);
   }
 
-  // butun savat bitta buyurtma bo'lib boradi (Vercel: Telegram botga, kompyuterda: data.json ga)
+  // butun savat bitta buyurtma bo'lib boradi — Telegram Mini App bilan BIR XIL /api/orders -> Supabase -> admin panel
+  let result = null, errorText = "";
   try {
     const r = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orders: batch })
     });
-    if (!r.ok) serverSaved = false;
+    result = await r.json().catch(() => null);
+    if (!r.ok || !result || !result.ok) {
+      serverSaved = false;
+      errorText = (result && result.error) || ("Server javobi: " + r.status);
+    }
   } catch (err) {
     serverSaved = false;
+    errorText = "Serverga ulanib bo‘lmadi. Internetni tekshiring.";
+  }
+  $("coConfirm").disabled = false;
+
+  // Server qabul qilmasa savat O'CHIRILMAYDI — mijoz xatoni ko'radi va qayta yuboradi
+  if (!serverSaved) {
+    $("coError").textContent = "Buyurtma yuborilmadi: " + errorText;
+    toast("Buyurtma yuborilmadi: " + errorText);
+    return;
   }
 
+  batch.forEach(o => { o.orderId = result.id; });
   localStorage.setItem("fm_orders", JSON.stringify(saved));
   setCart([]);
-  $("coConfirm").disabled = false;
   $("checkoutModal").classList.add("hidden");
   $("cartOverlay").classList.add("hidden");
-  toast(serverSaved ? "Buyurtma Admin'ga yuborildi! ⚽ Tez orada qo‘ng‘iroq qilamiz." : "Buyurtma saqlandi, lekin adminga yetib bormadi. Internetni tekshiring.");
+  toast(result.saved === false
+    ? "Buyurtma #" + result.id + " adminga Telegram orqali yuborildi ⚽"
+    : "Buyurtma #" + result.id + " qabul qilindi! ⚽ Tez orada qo‘ng‘iroq qilamiz.");
 }
 
 /* ---- yetkazib berish ma'lumotlari ---- */

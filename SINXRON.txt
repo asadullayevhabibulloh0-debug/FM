@@ -1,0 +1,23 @@
+SAYT + TELEGRAM BOT + MINI APP BIR XIL ISHLASHI UCHUN
+=====================================================
+Bu zip ichidagi 3 ta fayl eski fayllar ustiga qo'yiladi (yo'llari bir xil):
+  api/_lib.js, shop.html, telegram-app/app.js
+
+NIMA O'ZGARDI
+- Supabase ulangan bo'lsa, mahsulotlar FAQAT bazadan olinadi. Avval baza bo'sh yoki xato bo'lsa
+  jim products.json dagi eski ro'yxatga o'tib ketardi (shuning uchun o'chirilgan mahsulot qaytardi
+  va sayt bilan bot har xil ko'rsatardi). Endi bunday emas.
+- Sayt va Mini App bo'sh ro'yxatni ham qabul qiladi: hamma mahsulot o'chirilsa, bo'sh ko'rinadi.
+- Saytdagi eski brauzer keshi va standart ro'yxat o'chirilgan mahsulotni qaytarmaydi.
+
+QILISH KERAK (bir marta)
+1) Supabase -> SQL Editor: supabase/schema.sql ni RUN qiling.
+2) Vercel -> Settings -> Environment Variables: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+   BOT_TOKEN, ADMIN_CHAT_ID, ADMIN_KEY (admin paroli — albatta qo'ying!). So'ng Redeploy.
+3) https://SAYTINGIZ/api/setup-bot -> "Botni shu saytga ulash" ni bosing.
+4) Kompyuterdagi START.bat ni o'chirib qo'ying (bot faqat Vercel'da ishlasin).
+5) https://SAYTINGIZ/api/health — hamma qator ✅ bo'lishi kerak.
+
+TEKSHIRISH
+Admin panelda mahsulot qo'shing -> saytni va botdagi "Do'kon"ni yangilang -> ikkalasida chiqishi kerak.
+O'chirsangiz ikkalasidan ham yo'qoladi.

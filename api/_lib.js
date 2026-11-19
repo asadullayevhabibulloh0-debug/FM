@@ -310,13 +310,15 @@ function cleanProduct(x, old = {}) {
 
 /* Yangi buyurtma: adminlarga xabar (holat tugmalari bilan) va Telegram mijozga tasdiq.
    Qaytaradi: nechta admin chatiga yetib bordi. */
-async function notifyNewOrder(order) {
+async function notifyNewOrder(order, saveWarning = "") {
   if (!TOKEN) return 0;
   let delivered = 0;
+  // ogohlantirish holat qatoridan OLDIN turadi (holat tugmalari xabarning oxirgi qatorini almashtiradi)
+  const warn = saveWarning ? `⚠️ <b>Admin panelga (Supabase) yozilmadi:</b> ${esc(String(saveWarning).slice(0, 300)).replace(/\n/g, " ")} — /api/health ni tekshiring` : "";
   for (const chat of ADMINS) {
     try {
       await tg("sendMessage", {
-        chat_id: chat, text: orderText(order, "Yangi"), parse_mode: "HTML",
+        chat_id: chat, text: orderText(order, "Yangi", warn), parse_mode: "HTML",
         disable_web_page_preview: true, reply_markup: statusKeyboard(order.tgUserId)
       });
       delivered++;
@@ -485,7 +487,7 @@ function buildOrder(body, products) {
 }
 
 /* Buyurtma xabari (admin uchun). Holat xabarning oxirgi qatorida turadi. */
-function orderText(o, status) {
+function orderText(o, status, warning = "") {
   const items = o.items.map((x, i) => {
     const extra = x.custom ? ` • yozuv: ${esc(x.shirtName)} #${esc(x.shirtNumber)}` : "";
     return `${i + 1}. <b>${esc(x.name)}</b>\n    O‘lcham: ${esc(x.size)} × ${x.qty}${extra}\n    ${money(x.unitPrice * x.qty)}`;
@@ -509,6 +511,7 @@ function orderText(o, status) {
     `🚚 Yetkazib berish: ${money(o.delivery)}`,
     o.discount ? `🎁 ${esc(o.payment)} chegirmasi: −${money(o.discount)}` : null,
     `💰 <b>Jami: ${money(o.total)}</b>`,
+    warning || null,
     `${STATUS_ICON[status] || "📌"} Holat: <b>${esc(status)}</b>`
   ].filter(x => x !== null).join("\n");
 }

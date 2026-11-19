@@ -290,7 +290,8 @@
 
     <div class="toast" id="toast"></div>
 
-    <script>
+    <script src="./api-base.js"></script>
+<script>
         let me = JSON.parse(localStorage.getItem("fm_current_user") || "null");
         if (!me || me.role !== "admin") {
             // login shart emas: parol kerak bo'lsa server 401 qaytaradi va login sahifasiga o'tkazadi

@@ -27,14 +27,20 @@ async function create(req, res) {
   }
   const { order, lines } = built;
 
-  let saved = false;
+  // Sayt va Telegram buyurtmasi bir xil yo'l bilan Supabase'ga yoziladi -> admin panel ikkalasini ham ko'radi
+  let saved = false, saveError = "";
   if (store.enabled) {
-    try { await store.addOrders(lines); saved = true; } catch (e) { console.error("saqlanmadi:", e.message); }
-  }
+    for (let attempt = 0; attempt < 2 && !saved; attempt++) {
+      try { await store.addOrders(lines); saved = true; }
+      catch (e) { saveError = e.message; console.error(`saqlanmadi (${order.source}, urinish ${attempt + 1}):`, e.message); }
+    }
+  } else saveError = "Supabase ulanmagan (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)";
 
-  const delivered = await notifyNewOrder(order);
-  if (!delivered && !saved) return res.status(502).json({ error: "Telegramga yuborib bo‘lmadi. Keyinroq urinib ko‘ring." });
-  res.status(201).json({ ok: true, id: order.id, total: order.total, discount: order.discount, payment: order.payment });
+  // Bazaga yozilmagan bo'lsa admin Telegram xabarida buni ko'radi (buyurtma yo'qolmaydi)
+  const delivered = await notifyNewOrder(order, saved ? "" : saveError);
+  if (!delivered && !saved) return res.status(502).json({ error: "Buyurtma saqlanmadi: " + saveError });
+  res.status(201).json({ ok: true, saved, id: order.id, total: order.total, discount: order.discount, payment: order.payment,
+    ...(saved ? {} : { warning: "Admin panelga yozilmadi: " + saveError }) });
 }
 
 module.exports = require("./_lib").safe(async (req, res) => {
