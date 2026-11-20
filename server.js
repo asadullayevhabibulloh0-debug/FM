@@ -8,7 +8,7 @@ require('./load-env');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { CARD_METHODS, buildOrder, OrderError, isAdminRequest, store, getProducts, uploadImage, cleanProduct, pickOrderEdit, notifyNewOrder, notifyCustomerStatus } = require('./api/_lib');
+const { CARD_METHODS, buildOrder, OrderError, isAdminRequest, store, getProducts, uploadImage, cleanProduct, pickOrderEdit, notifyNewOrder, notifyCustomerStatus, announceProduct, TOKEN } = require('./api/_lib');
 
 const ROOT = __dirname, DATA = path.join(ROOT, 'data.json');
 const PORT = Number(process.env.PORT) || 3000;
@@ -48,6 +48,21 @@ const fileStore = {
     async deleteProduct(id) { const d = load(); d.products = d.products.filter(a => String(a.id) !== id); save(d); }
 };
 const db = store.enabled ? { ...store, products: getProducts } : fileStore;
+
+/* Kompyuterdagi bot foydalanuvchilari: index.js xotirasidan yoki bot-state.json dan + Telegram'dan buyurtma berganlar */
+async function announceLocal(prod) {
+    let chats = [];
+    if (typeof global.FM_BOT_SUBSCRIBERS === 'function') chats = global.FM_BOT_SUBSCRIBERS();
+    else {
+        try { const st = JSON.parse(fs.readFileSync(path.join(ROOT, 'bot-state.json'), 'utf8')); chats = [...(st.subscribers || []), ...(st.menuChats || [])]; } catch (e) { }
+    }
+    if (!store.enabled) { try { (await db.orders()).forEach(o => o.tgUserId && chats.push(String(o.tgUserId))); } catch (e) { } }
+    const base = [process.env.PUBLIC_URL, process.env.WEBAPP_URL].map(v => String(v || '').trim()).find(v => /^https:\/\//i.test(v));
+    try {
+        const r = await announceProduct(prod, { base: base ? new URL(base).origin : '', rootDir: ROOT, extraChats: chats, deadlineMs: 10 * 60 * 1000 });
+        if (r.blocked.length && typeof global.FM_BOT_DROP === 'function') global.FM_BOT_DROP(r.blocked);
+    } catch (e) { console.error("[e'lon] xato:", e.message); }
+}
 
 function send(res, status, data) {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
@@ -97,7 +112,10 @@ async function api(req, res, p) {
         const prod = cleanProduct(x, { id: Number(x.id) || Date.now(), img: './card.png', sizes: [], custom: false });
         if (!prod.name || !prod.price || !prod.sizes.length) return send(res, 400, { error: 'Nomi, narx va o‘lchamlar kerak' });
         if (store.enabled) { prod.img = await uploadImage(prod.img, prod.id); prod.customBackImage = await uploadImage(prod.customBackImage, String(prod.id) + "-back"); }
-        return send(res, 201, await db.saveProduct(prod));
+        const saved = await db.saveProduct(prod);
+        // yangi mahsulot: bot foydalanuvchilariga xabar fonda yuboriladi (admin kutib qolmaydi)
+        if (x.notify !== false && TOKEN) announceLocal(saved);
+        return send(res, 201, x.notify !== false && TOKEN ? { ...saved, announced: { background: true } } : saved);
     }
 
     if (req.method === 'GET' && p === '/api/orders') return send(res, 200, await db.orders());

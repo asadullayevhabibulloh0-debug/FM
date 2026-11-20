@@ -2,7 +2,7 @@
    FUTBOL MARKET — botni Vercel'dagi sayt bilan bog'lash (BIR MARTA ishlatiladi)
 
    Ishlatish:
-     node local/setup-bot.js https://futbol-market.vercel.app
+     node local/setup-bot.js https://futbol-market-livid.vercel.app
 
    Nima qiladi:
      - Telegram xabarlarini Vercel'dagi /api/telegram ga yo'naltiradi (webhook)
@@ -35,7 +35,7 @@ if (!TOKEN) {
 }
 if (!/^https:\/\/[^\s/]+$/i.test(SITE)) {
     console.error('Sayt manzilini bering (https:// bilan, oxirida papkasiz):');
-    console.error('  node local/setup-bot.js https://futbol-market.vercel.app');
+    console.error('  node local/setup-bot.js https://futbol-market-livid.vercel.app');
     process.exit(1);
 }
 const WEBAPP_URL = SITE + '/telegram-app/';

@@ -46,7 +46,7 @@ input,select,textarea{max-width:100%}
  .products{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
  .product-card{min-width:0;overflow:hidden}
  .product-img{height:clamp(130px,38vw,190px)!important}
- .product-card img{max-width:100%;object-fit:contain}
+ .product-card .product-img img{max-width:100%;object-fit:cover}
  .modal-card{width:calc(100vw - 24px)!important;max-width:560px;max-height:88dvh;overflow:auto;box-sizing:border-box;padding:22px 16px!important}
  .fm-language{top:8px;right:8px;padding:4px 6px;font-size:12px}
  .fm-language select{min-width:48px;max-width:58px}
@@ -116,3 +116,16 @@ input,select,textarea{max-width:100%}
 .no-results i{font-size:30px;color:#d9ff00;margin-bottom:12px}
 .no-results h3{margin:0 0 6px;color:#f5f7f2}
 .no-results p{margin:0;opacity:.8}
+
+/* ===== Tuzatish: mahsulot rasmi to'liq ko'rinadi (tepasi ham, pasti ham kesilmaydi) =====
+   Rasm o'zi "contain" bilan to'liq turadi, orqasida shu rasmning xira nusxasi bo'sh joyni to'ldiradi. */
+.product-img{background:#0b0d0b;height:auto!important;aspect-ratio:1/1;isolation:isolate}
+@media(max-width:640px){.product-img{height:auto!important;aspect-ratio:1/1}}
+.product-img::before{content:"";position:absolute;inset:-24px;z-index:0;background:var(--pimg) center/cover no-repeat;filter:blur(22px) brightness(.55) saturate(1.1)}
+.product-img img{position:relative;z-index:1;width:100%!important;height:100%!important;object-fit:contain!important;object-position:center;display:block;transition:transform .4s ease}
+.product-card:hover .product-img img{transform:scale(1.03)}
+
+/* ===== Tuzatish: "Savatga qo'shamizmi?" cheki ko'rinmasdi (oq fonda oq matn) ===== */
+.modal-card #summary{background:rgba(255,255,255,.06)!important;border:1px solid rgba(217,255,0,.25);color:rgba(245,247,242,.78)!important}
+.modal-card #summary b{color:#fff!important}
+.modal-card #summary b:last-of-type{color:var(--fm-neon)!important}

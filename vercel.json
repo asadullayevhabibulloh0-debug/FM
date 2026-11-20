@@ -4,6 +4,9 @@
   "buildCommand": "",
   "installCommand": "",
   "functions": {
+    "api/products.js": {
+      "maxDuration": 60
+    },
     "api/*.js": {
       "maxDuration": 10
     }

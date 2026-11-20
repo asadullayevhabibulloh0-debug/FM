@@ -22,15 +22,15 @@ Vercel → Project → Settings → Environment Variables. You can paste the who
 | `SUPABASE_URL` | yes | `https://xxxx.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | yes | the **secret** / service_role key (not publishable/anon) |
 | `ADMIN_KEY` | strongly recommended | admin panel password. Empty = anyone can open `/admin.html` |
-| `PUBLIC_URL` | optional | `https://futbol-market.vercel.app` |
+| `PUBLIC_URL` | optional | `https://futbol-market-livid.vercel.app` |
 
 After changing variables → Deployments → **Redeploy**.
 
 ## 4. Connect the Telegram bot (once)
-Open `https://futbol-market.vercel.app/api/setup-bot` → click **"Botni shu saytga ulash"**.
+Open `https://futbol-market-livid.vercel.app/api/setup-bot` → click **"Botni shu saytga ulash"**.
 (If `ADMIN_KEY` is set: `/api/setup-bot?run=1&key=YOUR_PASSWORD`.)
 This sets the webhook, the 🛒 Do'kon menu button and the bot commands. Use the production domain, not a preview URL.
 
 ## 5. Check
-`https://futbol-market.vercel.app/api/health` — every row should be ✅ (Supabase + Telegram).
+`https://futbol-market-livid.vercel.app/api/health` — every row should be ✅ (Supabase + Telegram).
 Then send `/start` to the bot and place a test order.

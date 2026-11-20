@@ -6,7 +6,7 @@
    Hamma sahifalarga <script src="./api-base.js"></script> bilan (boshqa skriptlardan OLDIN) ulanadi. */
 (function () {
   // Vercel'dagi asosiy sayt manzili (.env dagi PUBLIC_URL bilan bir xil). Domen o'zgarsa shu yerni yangilang.
-  const PRODUCTION = "https://futbol-market-f53.vercel.app";
+  const PRODUCTION = "https://futbol-market-livid.vercel.app";
 
   const nativeFetch = window.fetch.bind(window);
   let base = "";

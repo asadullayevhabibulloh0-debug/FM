@@ -142,6 +142,7 @@
         .field textarea { min-height: 70px; resize: vertical; }
         .check { display: flex; gap: 10px; align-items: center; font-weight: 600; grid-column: 1 / -1; }
         .check input { width: 18px; height: 18px; accent-color: var(--lime); }
+        #pmNotifyRow[hidden] { display: none; }
         .imgpick { display: flex; gap: 14px; align-items: center; grid-column: 1 / -1; }
         .imgpick .pv { width: 96px; height: 96px; border-radius: 14px; background: #f2f3ee; display: grid; place-items: center; overflow: hidden; flex: none; }
         .imgpick .pv img { width: 100%; height: 100%; object-fit: contain; }
@@ -251,6 +252,7 @@
                 <div class="field"><label for="pmPrice">Narxi (so‘m)</label><input id="pmPrice" type="number" min="1" step="any" required placeholder="899000"></div>
                 <div class="field" id="pmOldPriceField" hidden><label for="pmOldPrice">Eski narxi (so‘m) — faqat tahrirlashda</label><input id="pmOldPrice" type="number" min="0" step="any" placeholder="999000"></div>
                 <div class="field wide"><label for="pmSizes">O‘lchamlar (vergul bilan)</label><input id="pmSizes" required placeholder="S, M, L, XL  yoki  39, 40, 41"></div>
+                <label class="check" id="pmNotifyRow"><input id="pmNotify" type="checkbox" checked> 📢 Telegram bot foydalanuvchilariga «Yangi mahsulot» xabarini yuborish</label>
                 <label class="check"><input id="pmCustom" type="checkbox"> Forma orqasiga ism va raqam yozdirish mumkin (+50 000 so‘m)</label>
                 <div class="field wide" id="pmBackSettings" hidden>
                     <label for="pmBackFile">Orqa rasm kiritish</label>
@@ -523,7 +525,7 @@
             $("pmName").value = p ? p.name : ""; $("pmCat").value = p ? p.cat : "Forma";
             if (p && ![...$("pmCat").options].some(o => o.value === p.cat)) $("pmCat").add(new Option(p.cat, p.cat, true, true));
             $("pmPrice").value = p ? p.price : ""; $("pmSizes").value = p ? (p.sizes || []).join(", ") : "";
-            $("pmOldPriceField").hidden = !p; $("pmOldPrice").value = p ? (p.oldPrice ?? p.old_price ?? "") : "";
+            $("pmOldPriceField").hidden = !p; $("pmNotifyRow").hidden = !!p; $("pmNotify").checked = true; $("pmOldPrice").value = p ? (p.oldPrice ?? p.old_price ?? "") : "";
             $("pmCustom").checked = !!(p && p.custom); $("pmPreview").src = p ? p.img : "./card.png"; $("pmFile").value = "";
             $("pmBackSettings").hidden = !((p && p.custom));
             const savedBack = p ? (p.customBackImage || p.custom_back_image || "") : "";
@@ -563,11 +565,18 @@
             catch (e) { $("pmErr").textContent = e.message; }
         };
 
+        // yangi mahsulot xabari natijasi (server javobidagi "announced")
+        function announceNote(a) {
+            if (!a) return "";
+            if (a.background) return " · Telegram’ga xabar yuborilmoqda 📢";
+            if (a.error) return " · Telegram xabari yuborilmadi: " + a.error;
+            return a.total ? ` · Telegram: ${a.sent}/${a.total} kishiga yuborildi 📢` : " · Telegram: hali bot foydalanuvchisi yo‘q";
+        }
         $("productForm").onsubmit = async e => {
             e.preventDefault();
             const body = {
                 name: $("pmName").value.trim(), cat: $("pmCat").value, price: Number($("pmPrice").value),
-                ...(S.editing ? { oldPrice: Number($("pmOldPrice").value) || 0 } : {}),
+                ...(S.editing ? { oldPrice: Number($("pmOldPrice").value) || 0 } : { notify: $("pmNotify").checked }),
                 sizes: $("pmSizes").value.split(",").map(s => s.trim()).filter(Boolean), custom: $("pmCustom").checked,
                 customTextColor: $("pmCustom").checked ? $("pmPrintColor").value.toUpperCase() : "",
                 customBackImage: $("pmCustom").checked ? (pickedBackImg || (S.editing && (S.editing.customBackImage || S.editing.custom_back_image)) || "") : ""
@@ -588,7 +597,7 @@
                 const verified = S.products.find(x => String(x.id) === String(saved.id || (p && p.id)));
                 if (body.custom && (!verified || !(verified.customBackImage || verified.custom_back_image)))
                     throw new Error("Mahsulot saqlandi, ammo orqa rasm qayta o‘qilmadi. Supabase Storage/Baza ulanishini tekshiring.");
-                $("productModal").hidden = true; toast(p ? "Mahsulot saqlandi" : "Mahsulot qo‘shildi");
+                $("productModal").hidden = true; toast(p ? "Mahsulot saqlandi" : "Mahsulot qo‘shildi" + announceNote(saved.announced));
             } catch (err) { $("pmErr").textContent = err.message; }
             $("pmSave").disabled = false;
         };

@@ -39,7 +39,7 @@ const money = n => Number(n || 0).toLocaleString('en-US').replace(/,/g, ' ') + '
 // Admin paneldagi holat nomlari bilan bir xil bo'lishi shart
 const STATUS = { t: 'Tayyorlanmoqda', y: 'Yetkazilmoqda', d: 'Yetkazildi', c: 'Bekor' };
 const STATUS_ICON = { 'Yangi': '🆕', 'Tayyorlanmoqda': '📦', 'Yetkazilmoqda': '🚚', 'Yetkazildi': '✅', 'Bekor': '❌' };
-const { STATUS_NOTE, MAP_RE } = require('./api/_lib');
+const { STATUS_NOTE, MAP_RE, store: DB } = require('./api/_lib');
 
 /* ---------- Holat (qaysi buyurtmalar yuborilgan) ---------- */
 let state = { seen: [], groups: {}, offset: 0 };
@@ -353,8 +353,24 @@ async function ensureMenu(chat) {
     }
 }
 
+/* Yangi mahsulot xabarlari uchun botga yozgan har bir foydalanuvchini eslab qolamiz (server.js shu ro'yxatni oladi) */
+function rememberUser(msg) {
+    const id = String(msg.chat.id);
+    state.subscribers = state.subscribers || [];
+    if (!state.subscribers.includes(id)) { state.subscribers.push(id); saveState(); }
+    if (DB.enabled) DB.saveBotUser({ ...(msg.from || {}), id }).catch(e => console.error('[bot] bot_users:', e.message));
+}
+global.FM_BOT_SUBSCRIBERS = () => [...new Set([...(state.subscribers || []), ...(state.menuChats || [])])];
+global.FM_BOT_DROP = ids => {
+    const drop = new Set(ids.map(String));
+    state.subscribers = (state.subscribers || []).filter(x => !drop.has(x));
+    state.menuChats = (state.menuChats || []).filter(x => !drop.has(x));
+    saveState();
+};
+
 async function onMessage(msg) {
     if (msg.chat.type && msg.chat.type !== 'private') return;
+    rememberUser(msg);
     await ensureMenu(msg.chat.id);
     const chat = msg.chat.id;
     const text = String(msg.text || '').trim();

@@ -122,6 +122,8 @@ async function adminCommand(chat, cmd) {
 async function onMessage(msg, base) {
   if (msg.chat.type !== "private") return;
   const chat = msg.chat.id;
+  // yangi mahsulot xabarlari uchun foydalanuvchini eslab qolamiz
+  if (store.enabled) await store.saveBotUser({ ...(msg.from || {}), id: chat }).catch(e => console.error("bot_users:", e.message));
   const text = String(msg.text || "").trim();
   const cmd = text.split(/[\s@]/)[0].toLowerCase();
 

@@ -62,8 +62,10 @@ const MAP_RE = /^https:\/\/(www\.google\.com\/maps\?q=|maps\.google\.com\/\?q=)(
 // Webhook so'rovi rostdan Telegramdan kelganini tekshirish uchun (tokendan hosil qilinadi)
 const webhookSecret = () => crypto.createHash("sha256").update("fm-webhook:" + TOKEN).digest("hex").slice(0, 48);
 
+const TG_API = (process.env.TELEGRAM_API || "https://api.telegram.org").replace(/\/+$/, "");
+
 async function tg(method, params = {}) {
-  const r = await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`, {
+  const r = await fetch(`${TG_API}/bot${TOKEN}/${method}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params)
@@ -230,6 +232,22 @@ const store = {
   },
   async deleteProduct(id) {
     if (isId(id)) await sb(`products?id=eq.${id}`, { method: "DELETE" });
+  },
+
+  /* Botga yozgan foydalanuvchilar — yangi mahsulot xabari shularga boradi (supabase/BOT_USERS_MIGRATION.sql) */
+  async saveBotUser(u) {
+    if (!u || !isId(u.id)) return;
+    await sb("bot_users", {
+      method: "POST", prefer: "resolution=merge-duplicates,return=minimal",
+      body: { chat_id: Number(u.id), name: clip([u.first_name, u.last_name].filter(Boolean).join(" "), 80), username: clip(u.username, 40), blocked: false, last_seen: new Date().toISOString() }
+    });
+  },
+  async botUsers() {
+    return (await sb("bot_users?select=chat_id&blocked=eq.false")).map(r => String(r.chat_id));
+  },
+  async blockBotUsers(ids) {
+    const list = ids.filter(isId);
+    if (list.length) await sb(`bot_users?chat_id=in.(${list.join(",")})`, { method: "PATCH", body: { blocked: true }, prefer: "return=minimal" });
   }
 };
 
@@ -341,6 +359,137 @@ async function notifyCustomerStatus(line, status) {
     chat_id: line.tgUserId, parse_mode: "HTML",
     text: `<code>#${esc(line.orderId || line.id)}</code> — ${STATUS_NOTE[status]}`
   }).catch(e => console.error("mijozga yuborilmadi:", e.message));
+}
+
+/* ---------------- Yangi mahsulot: bot foydalanuvchilariga e'lon ---------------- */
+const CAT_ICON = { forma: "👕", butsa: "👟", top: "⚽", kubok: "🏆" };
+
+function productAnnounceText(p) {
+  const icon = CAT_ICON[String(p.cat || "").toLowerCase().replace(/[^a-z]/g, "")] || "🛍";
+  const old = Number(p.oldPrice || 0) > Number(p.price || 0) ? ` <s>${money(p.oldPrice)}</s>` : "";
+  const sizes = (p.sizes || []).filter(Boolean);
+  return [
+    "🔥 <b>FUTBOL MARKET</b>da yangi mahsulot!",
+    "",
+    `${icon} <b>${esc(p.name)}</b>`,
+    `💰 Narxi: <b>${money(p.price)}</b>${old}`,
+    sizes.length ? `📏 O‘lchamlar: ${esc(sizes.join(", "))}` : null,
+    "",
+    "🛒 Sotib olish uchun do‘konga kiring — ulgurib qoling! ⏳"
+  ].filter(x => x !== null).join("\n");
+}
+
+function announceButtons(base) {
+  if (!/^https:\/\//i.test(base || "")) return undefined;
+  const b = base.replace(/\/+$/, "");
+  return { inline_keyboard: [[{ text: "🛒 Do‘konni ochish", web_app: { url: `${b}/telegram-app/` } }], [{ text: "🌐 Saytga o‘tish", url: `${b}/shop.html` }]] };
+}
+
+/* Mahsulot rasmi: https manzil, data:URL yoki loyiha ichidagi fayl (./real.png) */
+function productPhoto(img, base, rootDir) {
+  const v = String(img || "");
+  if (/^https:\/\//i.test(v)) return { url: v };
+  const m = v.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
+  if (m) return { buf: Buffer.from(m[2], "base64"), type: m[1] };
+  if (!v || /^[a-z]+:/i.test(v)) return null;
+  const rel = v.replace(/^\.?\/+/, "");
+  if (rootDir) {
+    const fs = require("fs"), path = require("path");
+    const fp = path.normalize(path.join(rootDir, rel));
+    if (fp.startsWith(rootDir) && fs.existsSync(fp)) return { buf: fs.readFileSync(fp), type: "image/" + (path.extname(fp).slice(1).replace("jpg", "jpeg") || "png") };
+  }
+  return /^https:\/\//i.test(base || "") ? { url: base.replace(/\/+$/, "") + "/" + rel } : null;
+}
+
+async function tgUpload(method, fields, field, file) {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(fields)) form.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
+  const ext = (file.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+  form.append(field, new Blob([file.buf], { type: file.type }), "product." + ext);
+  const r = await fetch(`${TG_API}/bot${TOKEN}/${method}`, { method: "POST", body: form });
+  const j = await r.json();
+  if (!j.ok) throw new Error(`${method}: ${j.description}`);
+  return j.result;
+}
+
+/* Kimga yuboriladi: botga yozganlar + Telegram'dan buyurtma berganlar + adminlar */
+async function announceRecipients(extra = []) {
+  const ids = new Set([...ADMINS, ...extra.map(String)]);
+  if (store.enabled) {
+    try { (await store.botUsers()).forEach(id => ids.add(id)); }
+    catch (e) { console.error("bot_users o‘qilmadi (BOT_USERS_MIGRATION.sql ni Run qiling):", e.message); }
+    try { (await sb("orders?select=tg_user_id&tg_user_id=not.is.null")).forEach(r => ids.add(String(r.tg_user_id))); }
+    catch (e) { console.error("orders.tg_user_id o‘qilmadi:", e.message); }
+  }
+  return [...ids].filter(id => /^\d{1,18}$/.test(id));
+}
+
+/* Yangi mahsulotni hammaga yuboradi. Telegram cheklovi: sekundiga ~30 xabar — 25 tadan bo'lib yuboramiz.
+   Qaytaradi: { total, sent, failed, blocked: [chat_id...] } */
+async function announceProduct(p, { base = "", rootDir = "", extraChats = [], deadlineMs = 50000 } = {}) {
+  const res = { total: 0, sent: 0, failed: 0, blocked: [] };
+  if (!TOKEN || !p) return res;
+  const started = Date.now();
+  const chats = await announceRecipients(extraChats);
+  res.total = chats.length;
+  if (!chats.length) return res;
+
+  const caption = productAnnounceText(p);
+  const reply_markup = announceButtons(base);
+  const photo = productPhoto(p.img, base, rootDir);
+  let photoId = null, textOnly = !photo;
+
+  const sendOne = async chat_id => {
+    const extra = reply_markup ? { reply_markup } : {};
+    if (textOnly) return tg("sendMessage", { chat_id, text: caption, parse_mode: "HTML", disable_web_page_preview: true, ...extra });
+    if (photoId) return tg("sendPhoto", { chat_id, photo: photoId, caption, parse_mode: "HTML", ...extra });
+    // birinchi yuborishda rasm Telegram'ga yuklanadi, keyin uning file_id si qayta ishlatiladi
+    let msg;
+    try {
+      if (photo.url) {
+        try { msg = await tg("sendPhoto", { chat_id, photo: photo.url, caption, parse_mode: "HTML", ...extra }); }
+        catch (e) {
+          if (/blocked|deactivated|chat not found/i.test(e.message)) throw e;
+          const r = await fetch(photo.url, { signal: AbortSignal.timeout(10000) });
+          if (!r.ok) throw new Error("rasm yuklab olinmadi: HTTP " + r.status);
+          msg = await tgUpload("sendPhoto", { chat_id, caption, parse_mode: "HTML", ...extra }, "photo",
+            { buf: Buffer.from(await r.arrayBuffer()), type: (r.headers.get("content-type") || "image/jpeg").split(";")[0] });
+        }
+      } else {
+        msg = await tgUpload("sendPhoto", { chat_id, caption, parse_mode: "HTML", ...extra }, "photo", photo);
+      }
+    } catch (e) {
+      if (/blocked|deactivated|chat not found/i.test(e.message)) throw e;
+      console.error("[e'lon] rasm yuborilmadi, matn yuboriladi:", e.message);
+      textOnly = true;
+      return sendOne(chat_id);
+    }
+    const sizes = msg && msg.photo;
+    if (sizes && sizes.length) photoId = sizes[sizes.length - 1].file_id;
+    return msg;
+  };
+
+  // birinchisi alohida (rasm bir marta yuklanadi), qolganlari 25 tadan
+  const queue = [...chats];
+  const handle = async chat => {
+    try { await sendOne(chat); res.sent++; }
+    catch (e) {
+      res.failed++;
+      if (/blocked|deactivated|chat not found|user is deactivated/i.test(e.message)) res.blocked.push(chat);
+      else console.error(`[e'lon] ${chat}:`, e.message);
+    }
+  };
+  await handle(queue.shift());
+  while (queue.length) {
+    if (Date.now() - started > deadlineMs) { console.error(`[e'lon] vaqt tugadi: ${queue.length} ta chatga yuborilmadi`); res.failed += queue.length; break; }
+    const batch = queue.splice(0, 25);
+    const t = Date.now();
+    await Promise.all(batch.map(handle));
+    if (queue.length) await new Promise(r => setTimeout(r, Math.max(0, 1100 - (Date.now() - t))));
+  }
+  if (res.blocked.length && store.enabled) await store.blockBotUsers(res.blocked).catch(e => console.error("bot_users:", e.message));
+  console.log(`[e'lon] "${p.name}": ${res.sent}/${res.total} ta chatga yuborildi`);
+  return res;
 }
 
 // admin panel buyurtmada shu maydonlarni o'zgartira oladi
@@ -543,5 +692,5 @@ async function readJson(req) {
 module.exports = {
   safe, safeEqual, TOKEN, ADMINS, ADMIN_KEY, DELIVERY_FEE, PRINT_FEE, PAYMENT_METHODS, CARD_METHODS, DISCOUNTS, normPayment, discountFor, STATUS, STATUS_ICON, STATUS_NOTE, MAP_RE,
   esc, money, tg, siteUrl, verifyInitData, orderText, customerConfirmText, statusKeyboard, webhookSecret, readJson,
-  store, checkSupabase, getProducts, uploadImage, cleanProduct, pickOrderEdit, notifyNewOrder, notifyCustomerStatus, ORDER_FIELDS, isAdminRequest, buildOrder, OrderError
+  store, checkSupabase, getProducts, uploadImage, cleanProduct, pickOrderEdit, notifyNewOrder, notifyCustomerStatus, announceProduct, productAnnounceText, ORDER_FIELDS, isAdminRequest, buildOrder, OrderError
 };

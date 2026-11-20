@@ -19,7 +19,7 @@ window.SHOP = {
 
   // Bo'sh qoldiring: Mini App saytning /telegram-app/ papkasida turadi va
   // mahsulotlarni /api/products dan oladi, buyurtmani /api/orders orqali botga yuboradi.
-  // Mini App boshqa joyda turgan bo'lsa — sayt manzilini yozing ("https://futbol-market.vercel.app").
+  // Mini App boshqa joyda turgan bo'lsa — sayt manzilini yozing ("https://futbol-market-livid.vercel.app").
   // API topilmasa buyurtma mijozning Telegrami orqali adminUsername ga boradi.
   orderApi: "",
 

@@ -621,7 +621,7 @@ function render(category) {
 
       <article class="product-card">
 
-        <div class="product-img">
+        <div class="product-img" style="--pimg:url('${String(product.img || "./card.png").replace(/'/g, "%27")}')">
 
           <span>
             ${product.cat}

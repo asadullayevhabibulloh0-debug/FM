@@ -4,7 +4,7 @@
      POST / PUT ?id / DELETE ?id — admin panel (x-admin-key va Supabase kerak)
    Yuklangan rasm Supabase Storage (product-images) ga tushadi.
    ===================================================================== */
-const { readJson, store, getProducts, uploadImage, cleanProduct, isAdminRequest } = require("./_lib");
+const { readJson, store, getProducts, uploadImage, cleanProduct, isAdminRequest, announceProduct, siteUrl } = require("./_lib");
 
 const MAX_IMG = 2800000; // Vercel so'rov chegarasi uchun: rasm ~2 MB gacha
 
@@ -53,5 +53,11 @@ module.exports = require("./_lib").safe(async (req, res) => {
     return res.status(502).json({ error: e.message || "Rasmni Supabase Storage'ga yuklab bo‘lmadi" });
   }
   const saved = await store.saveProduct(p);
-  res.status(req.method === "POST" ? 201 : 200).json(saved);
+  // yangi mahsulot: bot foydalanuvchilariga rasm bilan xabar (admin panelda belgi olib tashlansa yuborilmaydi)
+  let announced = null;
+  if (req.method === "POST" && body.notify !== false) {
+    announced = await announceProduct(saved || p, { base: siteUrl(req), deadlineMs: 45000 })
+      .catch(e => { console.error("announce:", e.message); return { error: e.message }; });
+  }
+  res.status(req.method === "POST" ? 201 : 200).json(announced ? { ...saved, announced } : saved);
 }, "products");

@@ -82,3 +82,14 @@ alter table public.orders add column if not exists discount integer not null def
 
 -- Admin paneldagi "eski narx" (chegirmadan oldingi narx)
 alter table public.products add column if not exists old_price integer not null default 0;
+
+-- Telegram bot foydalanuvchilari (yangi mahsulot xabari uchun) — BOT_USERS_MIGRATION.sql bilan bir xil
+create table if not exists public.bot_users (
+  chat_id    bigint primary key,
+  name       text not null default '',
+  username   text not null default '',
+  blocked    boolean not null default false,
+  last_seen  timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.bot_users enable row level security;

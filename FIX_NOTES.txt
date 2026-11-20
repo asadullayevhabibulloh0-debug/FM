@@ -8,7 +8,7 @@ SABAB:
 
 O'ZGARISHLAR:
 1) api-base.js endi shop.html, admin.html, login.html ga ulangan. /api topilmasa:
-   localhost:3000 (START.bat) -> bo'lmasa Vercel (https://futbol-market-f53.vercel.app).
+   localhost:3000 (START.bat) -> bo'lmasa Vercel (https://futbol-market-livid.vercel.app).
    Sayt, Telegram va admin panel BITTA Supabase bazasini ishlatadi.
 2) shop.html: server buyurtmani qabul qilmasa savat o'chmaydi, aniq xato ko'rsatiladi.
    Muvaffaqiyatda buyurtma raqami (#FM-...) chiqadi.
@@ -17,4 +17,4 @@ O'ZGARISHLAR:
 4) api/admin-login.js: CORS qo'shildi (boshqa manzildan ochilgan login.html uchun).
 
 DEPLOY: .env va .env.local ni o'zingizdagi nusxadan qo'ying, so'ng DEPLOY.bat (npx vercel --prod).
-Tekshirish: https://futbol-market-f53.vercel.app/api/health — hammasi ✅ bo'lishi kerak.
+Tekshirish: https://futbol-market-livid.vercel.app/api/health — hammasi ✅ bo'lishi kerak.
